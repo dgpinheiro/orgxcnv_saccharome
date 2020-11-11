@@ -1,0 +1,103 @@
+---
+title: "Saccharome - gráfico de barras por táxons"
+output:
+  html_notebook: default
+  html_document: default
+  pdf_document: default
+---
+
+Fazer o gráfico de barras dos diferencialmente abundantes, e depois marcar se é ou não diferencialmente abundante (DESeq2) no Xara por programa!
+
+## 1. Importando a matriz de gêneros
+
+Primeiro, transferindo o diretório para o Saccharome, e depois importando a matriz de gêneros:
+
+```{r Matriz de gêneros, echo=TRUE, message=FALSE, warning=FALSE}
+require(ggplot2)
+require(reshape2)
+require(RColorBrewer)
+
+setwd('/work/rcsilva/projects/saccharome-wgs/')
+kraken_L6_mat <- read.delim(file = '../../analises/2019-04-29_kraken_all_official/summarized/parsed.bacteria.fungi.archaea_L6.txt',
+                            stringsAsFactors = F,
+                            sep = '\t')
+
+## Veja a matriz importada
+# head(kraken_L6_mat)
+
+## Substituir tudo antes de gênero
+kraken_L6_mat$OTU.ID <- gsub(pattern = ".*g__",
+                             replacement = '',
+                             perl = TRUE,
+                             x = kraken_L6_mat$OTU.ID)
+
+## Remover gêneros sem classificação
+kraken_genus <- subset(x = kraken_L6_mat,
+                       OTU.ID != '')
+```
+
+# 2. Manipulando matrizes do Kraken e Kaiju
+
+Agora, importando a matriz de saída do Kraken e do Kaiju:
+
+```{r Importando tabelas DESeq2 do Kraken e Kaiju, message=FALSE, warning=FALSE}
+kraken_deseq2_mat <- read.delim(file = '../../analises/2019-05-03_taxonomy_deseq2/rnaseq_kraken_default.csv',
+                                sep = ',',
+                                stringsAsFactors = FALSE)
+
+## Ver a matriz importada:
+# head(kraken_deseq2_mat)
+
+## Filtrando significativos
+kraken_ds2_sig <- subset(kraken_deseq2_mat, FDR < 0.05)
+kraken_ds2_sig$OTU.ID <- gsub(pattern = "_",
+                              replacement = ' ',
+                              x = kraken_ds2_sig$OTU.ID)
+
+## Importando a matriz do Kaiju
+kaiju_deseq2_mat <- read.delim(file = '../../analises/2019-05-03_taxonomy_deseq2/rnaseq_kaiju_default.csv',
+                                sep = ',',
+                                stringsAsFactors = FALSE)
+
+## Filtrando significativos
+kaiju_ds2_sig <- subset(kaiju_deseq2_mat, FDR < 0.05)
+
+## Da matriz original, manter somente os gêneros DA por um ou outro método
+kraken_sig_counts <- subset(kraken_genus,
+                            OTU.ID %in% kraken_ds2_sig$OTU.ID |
+                              OTU.ID %in% kaiju_ds2_sig$OTU.ID |
+                              OTU.ID == "Bradyrhizobium" |
+                              OTU.ID == "Azospirillum" |
+                              OTU.ID == "Bacillus")
+
+## Inserindo as médias, normalizando pra log2
+kraken_counts_taxplot <- as.data.frame(kraken_sig_counts[,1])
+kraken_counts_taxplot$CRZ <- log2(rowMeans(x = kraken_sig_counts[,c(2,3,4)]))
+kraken_counts_taxplot$ORZ <- log2(rowMeans(x = kraken_sig_counts[,c(5,6,7)]))
+colnames(kraken_counts_taxplot)[1] <- "Genus"
+```
+
+# 3. Gerando a figura no ggplot2
+
+A partir das tabelas formatadas acima, podemos montar a figura (sem DA, montado no Xara):
+
+```{r Reformulando a tabela, message = TRUE, echo=TRUE}
+## Reconstroi no formato longo
+rsp.kraken_counts <- melt(kraken_counts_taxplot, id=c("Genus"))
+colnames(rsp.kraken_counts)[2] <- "Ambiente"
+
+## Finalmente, o gráfico!
+ggplot(rsp.kraken_counts) +
+  geom_bar(aes(x = Genus, y = value, fill = Ambiente),
+           stat="identity",
+           width = 0.7,
+           position = "dodge") +
+  # scale_fill_brewer(palette = "RdGn") +
+  scale_fill_manual(values=c("red", "darkgreen")) +
+  coord_flip() +
+  labs(x = "Gênero",
+       y = "Log2 da contagem") +
+  theme_minimal()
+
+# The end!
+```

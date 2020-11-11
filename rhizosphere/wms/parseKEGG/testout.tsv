@@ -1,0 +1,36 @@
+09140 Cellular Processes	09143 Cell growth and death	04112 Cell cycle - Caulobacter [PATH:ko04112]	K01358  clpP, CLPP; ATP-dependent Clp protease, protease subunit [EC:3.4.21.92]
+09150 Organismal Systems	09149 Aging	04212 Longevity regulating pathway - worm [PATH:ko04212]	K01358  clpP, CLPP; ATP-dependent Clp protease, protease subunit [EC:3.4.21.92]
+09180 Brite Hierarchies	09181 Protein families: metabolism	01002 Peptidases [BR:ko01002]	K01358  clpP, CLPP; ATP-dependent Clp protease, protease subunit [EC:3.4.21.92]
+09100 Metabolism	09105 Amino acid metabolism	00260 Glycine, serine and threonine metabolism [PATH:ko00260]	K01733  thrC; threonine synthase [EC:4.2.3.1]
+09100 Metabolism	09108 Metabolism of cofactors and vitamins	00750 Vitamin B6 metabolism [PATH:ko00750]	K01733  thrC; threonine synthase [EC:4.2.3.1]
+09180 Brite Hierarchies	09183 Protein families: signaling and cellular processes	02000 Transporters [BR:ko02000]	K01992  ABC-2.P; ABC-2 type transport system permease protein
+09190 Not Included in Pathway or Brite	09194 Poorly characterized	99997 Function unknown	K07124  K07124; uncharacterized protein
+09100 Metabolism	09109 Metabolism of terpenoids and polyketides	00909 Sesquiterpenoid and triterpenoid biosynthesis [PATH:ko00909]	K06045  shc; squalene-hopene/tetraprenyl-beta-curcumene cyclase [EC:5.4.99.17 4.2.1.129]
+09180 Brite Hierarchies	09183 Protein families: signaling and cellular processes	02022 Two-component system [BR:ko02022]	K02479  K02479; two-component system, NarL family, response regulator
+09130 Environmental Information Processing	09132 Signal transduction	02020 Two-component system [PATH:ko02020]	K07686  uhpA; two-component system, NarL family, uhpT operon response regulator UhpA
+09180 Brite Hierarchies	09183 Protein families: signaling and cellular processes	02022 Two-component system [BR:ko02022]	K07686  uhpA; two-component system, NarL family, uhpT operon response regulator UhpA
+09130 Environmental Information Processing	09132 Signal transduction	02020 Two-component system [PATH:ko02020]	K07689  uvrY, gacA, varA; two-component system, NarL family, invasion response regulator UvrY
+09140 Cellular Processes	09145 Cellular community - prokaryotes	05111 Biofilm formation - Vibrio cholerae [PATH:ko05111]	K07689  uvrY, gacA, varA; two-component system, NarL family, invasion response regulator UvrY
+09140 Cellular Processes	09145 Cellular community - prokaryotes	02025 Biofilm formation - Pseudomonas aeruginosa [PATH:ko02025]	K07689  uvrY, gacA, varA; two-component system, NarL family, invasion response regulator UvrY
+09140 Cellular Processes	09145 Cellular community - prokaryotes	02026 Biofilm formation - Escherichia coli [PATH:ko02026]	K07689  uvrY, gacA, varA; two-component system, NarL family, invasion response regulator UvrY
+09180 Brite Hierarchies	09183 Protein families: signaling and cellular processes	02022 Two-component system [BR:ko02022]	K07689  uvrY, gacA, varA; two-component system, NarL family, invasion response regulator UvrY
+09120 Genetic Information Processing	09121 Transcription	03020 RNA polymerase [PATH:ko03020]	K03043  rpoB; DNA-directed RNA polymerase subunit beta [EC:2.7.7.6]
+09180 Brite Hierarchies	09182 Protein families: genetic information processing	03021 Transcription machinery [BR:ko03021]	K03043  rpoB; DNA-directed RNA polymerase subunit beta [EC:2.7.7.6]
+09180 Brite Hierarchies	09182 Protein families: genetic information processing	03400 DNA repair and recombination proteins [BR:ko03400]	K03043  rpoB; DNA-directed RNA polymerase subunit beta [EC:2.7.7.6]
+09120 Genetic Information Processing	09121 Transcription	03020 RNA polymerase [PATH:ko03020]	K13797  rpoBC; DNA-directed RNA polymerase subunit beta-beta' [EC:2.7.7.6]
+09180 Brite Hierarchies	09182 Protein families: genetic information processing	03021 Transcription machinery [BR:ko03021]	K13797  rpoBC; DNA-directed RNA polymerase subunit beta-beta' [EC:2.7.7.6]
+09180 Brite Hierarchies	09182 Protein families: genetic information processing	03400 DNA repair and recombination proteins [BR:ko03400]	K13797  rpoBC; DNA-directed RNA polymerase subunit beta-beta' [EC:2.7.7.6]
+09180 Brite Hierarchies	09183 Protein families: signaling and cellular processes	02000 Transporters [BR:ko02000]	K01990  ABC-2.A; ABC-2 type transport system ATP-binding protein
+09190 Not Included in Pathway or Brite	09191 Unclassified: metabolism	99980 Enzymes with EC numbers	K03564  BCP, PRXQ, DOT5; peroxiredoxin Q/BCP [EC:1.11.1.15]
+09100 Metabolism	09104 Nucleotide metabolism	00230 Purine metabolism [PATH:ko00230]	K00760  hprT, hpt, HPRT1; hypoxanthine phosphoribosyltransferase [EC:2.4.2.8]
+09100 Metabolism	09111 Xenobiotics biodegradation and metabolism	00983 Drug metabolism - other enzymes [PATH:ko00983]	K00760  hprT, hpt, HPRT1; hypoxanthine phosphoribosyltransferase [EC:2.4.2.8]
+09180 Brite Hierarchies	09182 Protein families: genetic information processing	03016 Transfer RNA biogenesis [BR:ko03016]	K04075  tilS, mesJ; tRNA(Ile)-lysidine synthase [EC:6.3.4.19]
+09100 Metabolism	09104 Nucleotide metabolism	00230 Purine metabolism [PATH:ko00230]	K15780  tilS-hprT; bifunctional protein TilS/HprT [EC:6.3.4.19 2.4.2.8]
+09180 Brite Hierarchies	09182 Protein families: genetic information processing	03016 Transfer RNA biogenesis [BR:ko03016]	K15780  tilS-hprT; bifunctional protein TilS/HprT [EC:6.3.4.19 2.4.2.8]
+09180 Brite Hierarchies	09181 Protein families: metabolism	01002 Peptidases [BR:ko01002]	K08635  MMEL1, NEP; neprilysin [EC:3.4.24.11]
+09180 Brite Hierarchies	09181 Protein families: metabolism	01002 Peptidases [BR:ko01002]	K01284  dcp; peptidyl-dipeptidase Dcp [EC:3.4.15.5]
+09100 Metabolism	09105 Amino acid metabolism	00350 Tyrosine metabolism [PATH:ko00350]	K05921  hpaG; 5-oxopent-3-ene-1,2,5-tricarboxylate decarboxylase / 2-hydroxyhepta-2,4-diene-1,7-dioate isomerase [EC:4.1.1.68 5.3.3.-]
+09180 Brite Hierarchies	09182 Protein families: genetic information processing	03400 DNA repair and recombination proteins [BR:ko03400]	K03919  alkB; DNA oxidative demethylase [EC:1.14.11.33]
+09140 Cellular Processes	09143 Cell growth and death	04112 Cell cycle - Caulobacter [PATH:ko04112]	K01358  clpP, CLPP; ATP-dependent Clp protease, protease subunit [EC:3.4.21.92]
+09150 Organismal Systems	09149 Aging	04212 Longevity regulating pathway - worm [PATH:ko04212]	K01358  clpP, CLPP; ATP-dependent Clp protease, protease subunit [EC:3.4.21.92]
+09180 Brite Hierarchies	09181 Protein families: metabolism	01002 Peptidases [BR:ko01002]	K01358  clpP, CLPP; ATP-dependent Clp protease, protease subunit [EC:3.4.21.92]

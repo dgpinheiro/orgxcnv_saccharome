@@ -1,0 +1,94 @@
+---
+title: "Sacharome WGS - rota do Enxofre"
+output:
+  html_notebook: default
+  html_document: default
+  pdf_document: default
+---
+
+Objetos de anotação:
+
+- en_out: anotações do KEGG
+- masterlist: todas as anotações (eggnog, prokka)
+- masterlist.p: todas as anotações significativas (p < 0.05)
+- masterlist.p.cpm: anotações significativas com suas contagens
+- kegg_dict_main: matriz completa do KEGG
+
+```{r}
+## Bibliotecas
+require(plyr)
+
+# head(en_out)
+```
+
+```{r}
+# head(masterlist)
+```
+
+```{r}
+# head(masterlist.p)
+```
+
+```{r}
+# head(masterlist.p.cpm)
+```
+
+```{r}
+# head(kegg_dict_main)
+```
+
+# 1. Metabolismo do enxofre
+
+Consultar as moléculas relativas ao metabolismo do enxofre, na rota metabólica do [kegg](https://www.genome.jp/kegg-bin/show_pathway?map=map00920&show_description=show).
+
+Usando ddply, vou gerar a soma dos KOs por L2FC (gerando um recorte de seu 'peso'). 
+Alternativamente, poderei fazer _heatmaps_ das contagens associadas a um valor de L2FC.
+
+## A. Separando os KEGGs relativos ao metabolismo de enxofre ##
+
+Criando um objeto `kegg.sulphur`, que contenha somente o metabolismo de enxofre:
+
+```{r Separando tabela com metabolismo de enxofre, echo=TRUE}
+## Tabela principal
+dim(kegg_dict_main)
+
+## Separa somente com metabolismo de enxofre
+kegg.sulphur <- subset(kegg_dict_main, pathway == "00920 Sulfur metabolism [PATH:ko00920]") 
+
+## Visualize
+head(kegg.sulphur)
+
+## Separando somente aqueles na rota do enxofre
+masterlist.sulphur <- subset(masterlist.p.cpm, ko_number %in% kegg.sulphur$KO)
+
+## Separar só KEGG e L2FC
+masterlist.sulphur.counts <- masterlist.sulphur[,c(4,9)]
+
+## Somar L2FC
+masterlist.sulphur.sum <- ddply(masterlist.sulphur.counts, "ko_number",numcolwise(sum))
+```
+
+## B. KEGG para metabolismo de PAH!
+
+Mesmo código acima, entretanto mudando apenas a rota:
+
+```{r Separando tabela com metabolismo de PAH, echo=TRUE}
+## Tabela principal
+dim(kegg_dict_main)
+
+## Separa somente com metabolismo de enxofre
+kegg.sulphur <- subset(kegg_dict_main, pathway == "00920 Sulfur metabolism [PATH:ko00920]") 
+
+## Visualize
+head(kegg.sulphur)
+
+## Separando somente aqueles na rota do enxofre
+masterlist.sulphur <- subset(masterlist.p.cpm, ko_number %in% kegg.sulphur$KO)
+
+## Separar só KEGG e L2FC
+masterlist.sulphur.counts <- masterlist.sulphur[,c(4,9)]
+
+## Somar L2FC
+masterlist.sulphur.sum <- ddply(masterlist.sulphur.counts, "ko_number",numcolwise(sum))
+```
+

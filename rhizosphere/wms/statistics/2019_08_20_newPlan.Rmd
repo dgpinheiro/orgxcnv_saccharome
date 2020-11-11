@@ -1,0 +1,421 @@
+---
+title: "novas-metas.md"
+author: "bioinfolab"
+date: "8/20/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Saccharome: ecologia numérica e correlação com solo
+
+[toc]
+
+Gerar novas análises baseados no estudo dos tomateiros, tentando associar os parâmetros baseados em 16S/ITS/WGS em resposta aos fatores ambientais, e/ou tratamento.
+
+```{r Pré-processamento dos dados}
+## Evocando bibliotecas
+library(vegan)
+library(sciplot)
+library(labdsv)
+library(dplyr)
+
+## Diretório
+setwd("/work/rcsilva/projects/saccharome-wgs/")
+
+## Leitura das matrizes de entrada
+
+#### Taxonomias
+table_kraken <- read.delim(file = "./analises/2019-04-29_kraken_all_official/tabletax.noplants.txt")
+
+colnames(table_kraken)[1] <- "OTU_ID"
+
+table_16S <- read.delim(file = "../saccharome-16s-rizo/analises/outputs/P01_A01_zotus_work_in_R/output/L1_OTUs.txt",
+                        stringsAsFactors = F)
+
+table_ITS <- read.delim(file = "../saccharome-its-rizo/analises/E14_work_in_R/P01_A01_work_in_R/output/L1_OTUs.txt",
+                        stringsAsFactors = F)
+
+#### Parâmetros de solo (dgpinheiro)
+load("/data/rcsilva/projects/saccharome-wgs/dados/RData/soil.dgpinheiro.RData")
+
+#### Solo: somente os dados da amostragem
+soil.df.rhizo <- soil.df[,-c(3,4,5,9,10,11)]
+
+#### Nomes de colunas idênticos às amostras
+colnames(soil.df.rhizo)[3:8] <- c(
+   "CRZ2", "CRZ3", "CRZ4",
+   "ORZ2", "ORZ3", "ORZ4"
+)
+
+#### Variáveis de amostras
+samps <- c("CRZ2", "CRZ3", "CRZ4",
+           "ORZ2", "ORZ3", "ORZ4")
+
+#### Orgânico e convencional
+samps.c <- c("CRZ2", "CRZ3", "CRZ4")
+samps.o <- c("ORZ2", "ORZ3", "ORZ4")
+
+#### Backup da matriz de rizo original
+sr_bkp <- soil.df.rhizo
+
+```
+
+## Pré-processamento: declaração de funções
+
+Funções pré-feitas pelo professor para aplicação em batelada.
+
+```{r Funções dgpinheiro}
+# Funções de teste de hipótese (dgpinheiro)
+
+## dgpinheiro:
+# x - parâmetro obrigatória para a função que será passada para
+# o método apply receberá a linha neste caso
+# os demais parâmetros servem para indicar os nomes das amostras 
+# (orgânicas [a] e convencionais [b]), respectivamente, neste caso
+
+## Shapiro test
+## o p-valor do teste de Shapiro
+
+s.test.pvalue <- function (x,a) {
+  if (sd(x[a])==0) {
+    x[a] <- sapply(x[a], function(w) { 
+      return( w + runif(1,min=0,max=1e-10) ) } ) 
+  }
+  return (shapiro.test(as.numeric(x[a]))$p.value)
+}
+
+## Teste t
+## Retorna o p-valor do teste t.
+t.test.pvalue <- function (x,a,b) { 
+  var.equal=TRUE
+  if (var.test(as.numeric(x[a]),
+               as.numeric(x[b]),
+               alternative="two.sided")$p.value < 0.05) {
+    var.equal=FALSE
+  }
+  return( t.test(as.numeric(x[a]),as.numeric(x[b]),var.equal=var.equal)$p.value );
+}
+
+## Teste de wilcox
+## Retorna o p-valor do teste de Wilcoxon
+w.test.pvalue <- function (x,a,b) { 
+  return( wilcox.test(as.numeric(x[a]),as.numeric(x[b]))$p.value );
+}
+
+## Teste de Kolmogorov-Smirnov
+## Testa e retorna o p-valor do teste KS
+k.test.pvalue <- function (x,a) {
+  return ( ks.test(as.numeric(x[a]), "pnorm", mean(as.numeric(x[a])), sd(as.numeric(x[a])))$p.value )
+}
+
+## Seleção de teste
+## A partir do modelo, seleciona um dos testes acima
+test.selection <- function(x,p = 0.05) {
+  if ((x[1] >= p) && (x[2] >= p) && (x[3] >= p) && x[4] >= p) {
+    return('t.test')
+  } else {
+    return('w.test')
+  }
+}
+
+# SEM: standard error
+sem <- function(x) {
+  return( sd(x)/sqrt(length(x)) )
+}
+
+
+```
+
+Com as matrizes prontas, a meta agora é:
+
+1. Calcular quais parâmetros de solo são variáveis;
+2. Correlacionar (PCA) as variáveis com os descritores do solo;
+3. Correlacionar os dados (CCA) com as variáveis de solo.
+
+## 1. Quais parâmetros do solo são diferentes em média para os pontos do estudo?
+
+Primeiro, vamos testar a normalidade de cada um dos descritores.
+
+### A. Adição de estatísticas descritivas
+
+Vamos adicionar alguns valores que serão úteis depois no cálculo em batelada das informações interessantes ao estudo.
+
+```{r Estatísticas descritivas}
+## Adição das médias
+soil.df.rhizo$mean.o <- apply(soil.df.rhizo[, samps.o], 1, mean)
+soil.df.rhizo$mean.c <- apply(soil.df.rhizo[, samps.c], 1, mean)
+
+## Desvio padrão
+soil.df.rhizo$sd.o <- apply(soil.df.rhizo[,samps.o], 1, sd)
+soil.df.rhizo$sd.c <- apply(soil.df.rhizo[,samps.c], 1, sd)
+
+## Erro padrão
+soil.df.rhizo$se.o <- apply(soil.df.rhizo[,samps.o],1,sem)
+soil.df.rhizo$se.c <- apply(soil.df.rhizo[,samps.c],1,sem)
+
+## TBC: Intervalos de confiança de 95%
+soil.df.rhizo$ci.low.o <-  apply(soil.df.rhizo[,c("mean.o","se.o")],1, function(x) {return(x[[1]]-qnorm(0.975)*x[[2]])} )
+soil.df.rhizo$ci.high.o <- apply(soil.df.rhizo[,c("mean.o","se.o")],1, function(x) {return(x[[1]]+qnorm(0.975)*x[[2]])} )
+soil.df.rhizo$ci.low.c <-  apply(soil.df.rhizo[,c("mean.c","se.c")],1, function(x) {return(x[[1]]-qnorm(0.975)*x[[2]])} )
+soil.df.rhizo$ci.high.c <- apply(soil.df.rhizo[,c("mean.c","se.c")],1, function(x) {return(x[[1]]+qnorm(0.975)*x[[2]])} )
+```
+
+### B. P-valores dos testes mais comuns
+
+```{r Teste de Normalidade: Shapiro-Wilk}
+## Para 01 variável (pH, todas as amostras)
+shapiro.test(as.numeric(soil.df.rhizo[1,-c(1,2)]))
+
+## Testes de médias
+
+### Teste T e W para todos
+soil.df.rhizo$t.test <- apply(soil.df.rhizo[, samps], 1, t.test.pvalue, samps.o, samps.c)
+soil.df.rhizo$w.test <- apply(soil.df.rhizo[, samps], 1, w.test.pvalue, samps.o, samps.c)
+
+### Teste de Shapiro para todos
+soil.df.rhizo$s.test.o <- apply(soil.df.rhizo[, samps], 1, s.test.pvalue, samps.o)
+soil.df.rhizo$s.test.c <- apply(soil.df.rhizo[, samps], 1, s.test.pvalue, samps.c)
+
+### Teste de KS para todos
+soil.df.rhizo$k.test.o <- apply(soil.df.rhizo[, samps], 1, k.test.pvalue, samps.o)
+soil.df.rhizo$k.test.c <- apply(soil.df.rhizo[, samps], 1, k.test.pvalue, samps.c)
+
+### A partir dos resultados, escolhe o teste de médias
+soil.df.rhizo$test.selected <- 
+  apply(soil.df.rhizo[,c('s.test.o','s.test.c','k.test.o','k.test.c')], 1, test.selection )
+
+soil.df.rhizo[['p.value.selected']] <- 
+  apply(soil.df.rhizo[,c('w.test','t.test','test.selected')], 1, function(x) {
+    return(x[x['test.selected']]) } 
+    )
+```
+
+Assim, para os pontos 02, 03 e 04, os resultados ficam piores que considerando todos os pontos, então vamos manter a análise de todos os pontos como diferença de solo:
+
+```{r Matriz de Solo}
+## Exemplo da matriz
+head(soil.df.test)
+```
+
+
+## 2. Espécie indicadora (IndVal) por matriz (16S, ITS, WGS)
+
+O valor de espécie indicadora (IndVal) é calculado a partir do produto da especificidade de uma espécie a um grupo, comparando com a média através de grupos.
+
+Citando Dave Roberts, o autor do pacote **labdsv** também usado para o cálculo do Indval: 
+
+- _"The indval approach looks for species that are both necessary and sufficient, i.e. if you find that species you should be in that type, and if you are in that type you should find that species"._
+
+```{r Espécie indicadora: ITS}
+
+### Matriz de exemplo
+head(table_ITS)
+
+### Grupos para amostras
+sample_groups <- c(1,1,1,
+                   2,2,2)
+
+### Puxa as espécies indicadoras por grupos
+## Para essa matriz, os nomes das espécies devem ser os nomes das linhas
+
+# Backup
+table_ITS_bkp <- table_ITS
+
+# Espécies como nomes de linhas
+row.names(table_ITS) <- table_ITS[,1]
+
+# Remove a coluna de espécies
+table_ITS <- table_ITS[,-1]
+
+# Calcula o IndVal
+# Quebra a máquina!
+# indval_ITS <- indval(x = table_ITS,
+                     # clustering = sample_groups)
+
+## Estilo Marcos
+ttITS <- t(table_ITS)
+
+## Gera as indicadoras
+ITS_IndVal <- indval(ttITS, sample_groups, numitr = 1000)
+
+## Corrige os p-valores
+ITS_IndVal$padj <- p.adjust(ITS_IndVal$pval)
+
+# Quantos são menors que 0.05?
+sum(ITS_IndVal$padj < 0.05)
+sum(ITS_IndVal$pval < 0.05)
+```
+
+E então para 16S...
+
+```{r Espécie indicadora: 16S}
+
+### Matriz de exemplo
+head(table_16S)
+
+### Puxa as espécies indicadoras por grupos
+## Para essa matriz, os nomes das espécies devem ser os nomes das linhas
+
+# Backup
+table_16S_bkp <- table_16S
+
+# Espécies como nomes de linhas
+row.names(table_16S) <- table_16S[,1]
+
+# Remove a coluna de espécies
+table_16S <- table_16S[,-1]
+
+## Estilo Marcos
+tt16S <- t(table_16S)
+
+## Gera as indicadoras
+M16S_IndVal <- indval(tt16S, sample_groups, numitr = 1000)
+
+## Corrige os p-valores
+M16S_IndVal$padj <- p.adjust(M16S_IndVal$pval,
+                             method = "fdr")
+
+# Quantos são menors que 0.05?
+sum(M16S_IndVal$padj < 0.05)
+sum(M16S_IndVal$pval < 0.05)
+
+## Filtrar aqueles com dois zeros
+table_16S$S23 <- apply(table_16S[,c(2,3)], 1, function(x) all(x==0))
+table_16S$S24 <- apply(table_16S[,c(2,4)], 1, function(x) all(x==0))
+table_16S$S25 <- apply(table_16S[,c(2,5)], 1, function(x) all(x==0))
+table_16S$S26 <- apply(table_16S[,c(2,6)], 1, function(x) all(x==0))
+table_16S$S34 <- apply(table_16S[,c(3,4)], 1, function(x) all(x==0))
+table_16S$S35 <- apply(table_16S[,c(3,5)], 1, function(x) all(x==0))
+table_16S$S36 <- apply(table_16S[,c(3,6)], 1, function(x) all(x==0))
+table_16S$S45 <- apply(table_16S[,c(4,5)], 1, function(x) all(x==0))
+table_16S$S46 <- apply(table_16S[,c(4,6)], 1, function(x) all(x==0))
+table_16S$S56 <- apply(table_16S[,c(5,6)], 1, function(x) all(x==0))
+
+filtered_table_16S <- subset(table_16S, ! S23)
+filtered_table_16S <- subset(filtered_table_16S, ! S24)
+filtered_table_16S <- subset(filtered_table_16S, ! S25)
+filtered_table_16S <- subset(filtered_table_16S, ! S26)
+filtered_table_16S <- subset(filtered_table_16S, ! S34)
+filtered_table_16S <- subset(filtered_table_16S, ! S35)
+filtered_table_16S <- subset(filtered_table_16S, ! S36)
+filtered_table_16S <- subset(filtered_table_16S, ! S45)
+filtered_table_16S <- subset(filtered_table_16S, ! S46)
+filtered_table_16S <- subset(filtered_table_16S, ! S56)
+
+## Mantem somente as colunas 1,6
+filtered_table_16S <- filtered_table_16S[,c(1:6)]
+
+## Estilo Marcos
+tfiltered_table_16S <- t(filtered_table_16S)
+
+## Gera as indicadoras
+M16S_f_IndVal <- indval(tfiltered_table_16S, sample_groups, numitr = 1000)
+
+## Corrige os p-valores
+M16S_f_IndVal$padj <- p.adjust(M16S_f_IndVal$pval, method = "fdr")
+
+# Quantos são menors que 0.05?
+sum(M16S_f_IndVal$padj < 0.05)
+sum(M16S_f_IndVal$pval < 0.05)
+```
+
+Também, nenhum valor de espécie indicadora.
+Vamos tentar para o WGS!
+
+```{r Espécie indicadora: WGS}
+# Primeiro, ajustar os nomes de colunas
+colnames(table_kraken)[1] <- "Taxa"
+
+# Remover o taxonomy
+table_kraken_bkp <- table_kraken
+table_kraken <- table_kraken[,-8]
+
+# Colocar ID como nome de linha
+row.names(table_kraken) <- table_kraken[,1]
+
+# Remove a coluna 1
+table_kraken <- table_kraken[,-1]
+
+## Estilo Marcos
+ttKRK <- t(table_kraken)
+
+## Gera as indicadoras
+WGS_IndVal <- indval(ttKRK, sample_groups, numitr = 1000)
+
+## Corrige os p-valores
+WGS_IndVal$padj <- p.adjust(WGS_IndVal$pval)
+
+# Quantos são menors que 0.05?
+sum(WGS_IndVal$padj < 0.05)
+sum(WGS_IndVal$pval < 0.05)
+```
+
+## 3. Espécie indicadora para matriz filtrada a nível de gênero
+
+Testa os valores colapsados de matriz taxonômica.
+
+```{r 16S com táxon sem zOTUS}
+
+## Leitura da matriz
+M16_OTU <- read.delim(file =                        "/work/rcsilva/projects/saccharome-16s-rizo/analises/output_indval/otu_table.txt",
+                        stringsAsFactors = F)
+
+# Colocar ID como nome de linha
+row.names(M16_OTU) <- M16_OTU[,1]
+
+# Remove a coluna 1
+M16_OTU <- M16_OTU[,-1]
+
+## Estilo Marcos - tabela transposta
+tM16_OTU <- t(M16_OTU)
+
+## Gera as indicadoras
+M16_OTU_IndVal <- indval(tM16_OTU, sample_groups, numitr = 1000)
+
+## Corrige os p-valores
+M16_OTU_IndVal$padj <- p.adjust(M16_OTU_IndVal$pval)
+
+M16_OTU_IndVal_ready <- data.frame(
+  "Rel.Freq." = M16_OTU_IndVal$relfrq,
+  "Rel. Abund." = M16_OTU_IndVal$relabu,
+  "p-value" = M16_OTU_IndVal$pval,
+  "p.adjusted" = M16_OTU_IndVal$padj
+)
+
+# Quantos são menors que 0.05?
+sum(M16_OTU_IndVal$padj < 0.05)
+sum(M16_OTU_IndVal$pval < 0.05)
+```
+
+E com os gêneros?
+
+```{r matriz colapsada de gênero (16s)}
+
+# Gênero
+M16_OTU_genus <- read.delim(file =                        "/work/rcsilva/projects/saccharome-16s-rizo/analises/output_indval/otu_genus_table.txt",
+                        stringsAsFactors = F)
+
+# Colocar ID como nome de linha
+row.names(M16_OTU_genus) <- M16_OTU_genus[,1]
+
+# Remove a coluna 1
+M16_OTU_genus <- M16_OTU_genus[,-1]
+
+## Estilo Marcos - tabela transposta
+tM16_OTU_genus <- t(M16_OTU_genus)
+
+## Gera as indicadoras
+M16_genus_OTU_IndVal <- indval(tM16_OTU_genus, sample_groups, numitr = 1000)
+
+## Corrige os p-valores
+M16_genus_OTU_IndVal$padj <- p.adjust(M16_genus_OTU_IndVal$pval)
+
+# Quantos são menors que 0.05?
+sum(M16_OTU_IndVal$padj < 0.05)
+sum(M16_OTU_IndVal$pval < 0.05)
+```
